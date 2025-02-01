@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        h1 {
+            display: flex;
+            justify-content: center;
+            font-family: 'Itim', cursive;
+            border: 2px solid black;
+            border-radius: 20px;
+            background-color: rgb(128, 255, 255);
+            outline: 2px solid white;
+            width: 50%;
+            margin-left: 25%;
+        }
+        body {
+            background-color: rgb(0, 0, 0);
+        }
+        #gamecontainer {
+            display: grid;
+            border: 2px solid white;
+            position: relative;
+            width: 480px;
+        }
+        .tile {
+            border: 1px solid rgb(128, 128, 128);
+        }
+        #gridHolder {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #gameOver {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 65px;
+            font-family: 'Itim', cursive;
+        }
+        .hidden {
+            visibility: hidden;
+        }
+        button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: rgb(0, 63, 255);
+            color: white;
+            font-family: 'Itim', cursive;
+            font-size: 26px;
+            width: 25%;
+            border-radius: 20px;
+            
+        }
+        section {
+            display: flex;
+            justify-content: center;
+        }
+        h3 {
+            display: flex;
+            justify-content: center;
+            color: white;
+            font-family: 'Itim', cursive;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Itim&amp;display=swap" rel="stylesheet">
+    <title>Snake</title>
+  </head>
+  <body>
+    <h1>Snake</h1>
+    <h3 id=score> Score = 1 </h3>
+    <div id="gridHolder">
+        <div id="gamecontainer"></div>
+    </div>
+    <p1 id=gameOver class=hidden> Game Over! </p1>
+    <section>
+    <button id=restart class=hidden> Restart </button>
+    </section>
+    <script>
+        window.addEventListener("DOMContentLoaded", (event) => {
+            const gameOver = document.getElementById('gameOver');
+            const restartButton = document.getElementById('restart');
+            const score = document.getElementById('score');
+            gameOver.classList.add('hidden');
+            restartButton.classList.add('hidden');
+            let isGameOver = false;
+            score.innerText = 'Score = 1';
+
+            const gameContainer = document.getElementById('gamecontainer');
+        
+            let pixelSize = 25;
+            let gridSize = 15;
+            let snakeDirection = 3;
+
+            gameContainer.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
+            gameContainer.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+            gameContainer.style.width = `${pixelSize * gridSize + gridSize * 2}px`;
+
+            //creates grid of tiles with unique identifiers
+            function createGrid() {
+                for(let i = 0; i < gridSize; i++) {
+                    for(let j = 0; j < gridSize; j++) {
+                        const tile = document.createElement('div');
+                        tile.dataset.row = j;
+                        tile.dataset.column = i;
+                        tile.classList.add('tile');
+                        gameContainer.appendChild(tile);
+                    }
+                }
+                const elements = document.querySelectorAll('.tile');
+                    elements.forEach(element => {
+                    element.style.width = `${pixelSize}px`;
+                    element.style.height = `${pixelSize}px`;
+                });
+            }
+            //spawns player in a random location
+            function spawnPlayer(){
+                let x = Math.floor(Math.random() *  (gridSize - 1)).toString();
+                let y = Math.floor(Math.random() * gridSize).toString();
+                displayCell(x, y);
+                if (x > (gridSize / 2)) {
+                    snakeDirection = 2;
+                }
+                return [Number(x), Number(y)];
+            }
+
+            //this is the main block of code that sets everything in motion
+            createGrid();
+            let headPositions = spawnPlayer();
+            let headX = headPositions[0];
+            let headY = headPositions[1];
+            let snakeArray = [];
+            snakeArray.unshift([headX, headY]);
+            let applePosition;
+            spawnApple();
+            let snakeLength = 1;
+            let movementThisFrame = false;
+
+            //this is the game loop
+            async function myLoop() {
+                let counter = 0;
+                while (!isGameOver) {
+                    if (!movementThisFrame) {
+                        playerMovement(snakeDirection);
+                    }
+                    movementThisFrame = false;
+                    if (counter === 10) {
+                        displayCell(applePosition[0], applePosition[1], 2);
+                        counter = -1;
+                    }
+                    counter++;
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+
+            //game loop
+            myLoop();
+
+            //adds event handler for arrows and WASD input
+            document.addEventListener('keydown', (event) => {
+                event.preventDefault;
+                if (!isGameOver) {
+                    if (event.code === "ArrowUp" || event.code === "KeyW") {
+                        if (!movementThisFrame && snakeDirection !== 0 && snakeDirection !== 1) {
+                            playerMovement(0);
+                            movementThisFrame = true;
+                        }
+                        updateDirection(0, snakeDirection);
+                    }
+                    else if (event.code === "ArrowDown" || event.code === "KeyS") {
+                        if (!movementThisFrame && snakeDirection !== 0 && snakeDirection !== 1) {
+                            playerMovement(1);
+                            movementThisFrame = true;
+                        }
+                        updateDirection(1, snakeDirection);
+                    }
+                    else if (event.code === "ArrowLeft" || event.code === "KeyA") {
+                        if (!movementThisFrame && snakeDirection !== 2 && snakeDirection !== 3) {
+                            playerMovement(2);
+                            movementThisFrame = true;
+                        }
+                        updateDirection(2, snakeDirection);
+                    }
+                    else if (event.code === "ArrowRight" || event.code === "KeyD") {
+                        if (!movementThisFrame && snakeDirection !== 2 && snakeDirection !== 3) {
+                            playerMovement(3);
+                            movementThisFrame = true;
+                        }
+                        updateDirection(3, snakeDirection);
+                    }
+                }
+            });
+
+            //restarts the game when the button is clicked, sets all variables back to their starting amounts
+            restartButton.addEventListener('click', () => {
+                if (isGameOver) {
+                    for (let i = 0; i < gridSize; i++){
+                        for (let j = 0; j < gridSize; j++){
+                            displayCell(i, j, 0);
+                        }
+                    }
+                    isGameOver = false;
+                    gameOver.classList.add('hidden');
+                    restartButton.classList.add('hidden');
+                    headPositions = spawnPlayer();
+                    headX = headPositions[0];
+                    headY = headPositions[1];
+                    snakeArray = [];
+                    snakeArray.unshift([headX, headY]);
+                    spawnApple();
+                    snakeLength = 1;
+                    movementThisFrame = false;
+                    score.innerText = 'Score = 1';
+                    myLoop();
+
+                }
+            });
+
+            //takes in direction as integer, 0 is up, 1 is down, 2 is left, 3 is right
+            //updates board based on this movement as well using updateSnakeArray function
+            function playerMovement(direction) {
+                if (direction === 0){
+                     headY -= 1;
+                }
+                else if (direction === 1){
+                    headY += 1;
+                }
+                else if (direction === 2){
+                    headX -= 1;
+                }
+                else if (direction === 3){
+                   headX += 1;
+                }
+                
+                updateSnakeArray(headX, headY, snakeArray);
+                updateDirection(direction, snakeDirection);
+                if (checkWallContact(headX, headY)) {
+                    endGame();
+                }
+
+            }
+
+            //mode is 1 if you want to color in a cell, 0 if you want to delete it
+            //sets cells at coordinates to a certain color or resets them to the default color
+            function displayCell(x, y, mode = 1){
+                x = x.toString();
+                y = y.toString();
+                const tiles = document.querySelectorAll('.tile');
+                tiles.forEach(element => {
+                    if (element.dataset.row === x && element.dataset.column === y) {
+                        if (mode === 1){
+                            if (window.getComputedStyle(element).getPropertyValue('background-color') === 'rgb(0, 255, 0)' && headX == x && headY == y){
+                                endGame();
+                            }
+                            element.style.backgroundColor = 'rgb(0, 255, 0)';
+                        }
+                        else if (mode === 0){
+                            element.style.backgroundColor = 'black';
+                        }
+                        else if (mode === 2){
+                            element.style.backgroundColor = 'rgb(255, 0, 0)';
+                        }
+                    }
+                })
+            }
+
+            //updates the array storing what tiles and order the snake goes in, also updates board display
+            function updateSnakeArray(newHeadX, newHeadY, snakeArray){
+                snakeArray.unshift([newHeadX, newHeadY]);
+                
+                if (checkEating() === false){
+                    const poppedItem = snakeArray.pop();
+                    displayCell(poppedItem[0], poppedItem[1], 0);
+                }
+                for (let i = 0; i < snakeArray.length; i++) {
+                    displayCell(snakeArray[i][0], snakeArray[i][1]);
+                }     
+            }
+
+            //spawns an apple anywhere on the board where there is no snake
+            function spawnApple(){
+                x = Math.floor(Math.random() * gridSize);
+                y = Math.floor(Math.random() * gridSize);
+                if (!snakeArray.includes([x, y])){
+                    applePosition = [x, y];
+                    const tiles = document.querySelectorAll('.tile');
+                    x = x.toString();
+                    y = y.toString();
+                    tiles.forEach(element => {
+                        if (element.dataset.row === x && element.dataset.column === y) {
+                            element.style.backgroundColor = 'rgb(255, 0, 0)';
+                        }
+                    })
+                }
+            }
+
+            //checks if snake head is on top of the apple
+            //if it is,it spawns a new apple
+            function checkEating(){
+                for (let i = 0; i < snakeLength; i++) {
+                    if (snakeArray[i][0] == applePosition[0] && snakeArray[i][1] == applePosition[1]){
+                        spawnApple();
+                        snakeLength++;
+                        score.innerText = `Score = ${snakeLength}`;
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            //takes in direction as integer, 0 is up, 1 is down, 2 is left, 3 is right
+            function updateDirection(direction, currentDirection){
+                if (snakeLength !== 1) {
+                    let oppositeDirection;
+                    currentDirection % 2 === 0 ? oppositeDirection = currentDirection + 1 : oppositeDirection = currentDirection - 1; 
+                    if (direction !== oppositeDirection && direction !== currentDirection){
+                        snakeDirection = direction;
+                    }
+                    else {
+                        snakeDirection = currentDirection;
+                    }
+                }
+                else {
+                    snakeDirection = direction;
+                } 
+            }
+
+            //checks if snake head is in contact with any wall
+            function checkWallContact(headX, headY){
+                if (headX >= gridSize || headY >= gridSize || headX < 0 || headY < 0){
+                     return true;
+                }
+                else {
+                    return false;
+                }
+            }
+
+            //disables movements, display game over text, and displays restart button
+            function endGame() {
+                gameOver.classList.remove('hidden');
+                restartButton.classList.remove('hidden');
+                isGameOver = true;
+            }
+        });
+    </script>
+  </body>
+</html>
